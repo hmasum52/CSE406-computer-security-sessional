@@ -14,7 +14,7 @@
 '''
 
 # pip install BitVector
-
+import time
 
 """Tables"""
 
@@ -347,7 +347,11 @@ if __name__ == "__main__":
     # plaintext = "Two One Nine Two"
     plaintext = "Can They Do This"
 
+    start = time.time() # start time
     aes = AES(key, plaintext)
+    end = time.time() # end time
+    key_schedule_time = end - start
+
     print("Plain text:")
     print("In ASCII: ", plaintext)
     print("In HEX: ", aes.get_hex_str().lower())
@@ -358,15 +362,27 @@ if __name__ == "__main__":
     print("In HEX: ", aes.get_hex_str(key=True).lower())
     print("")
 
+    start = time.time() # start time
     aes.encrypt(print_state=False)
+    end = time.time() # end time
+    encrypt_time = end - start
     print("Chiper Text:")
     print("In ASCII: ", aes.get_plaintext())
     print("In HEX: ", aes.get_hex_str().lower())
     print("")
 
+    start = time.time() # start time
     aes.decrypt(print_state=False)
+    end = time.time() # end time
+    decrypt_time = end - start
     print("Dchiphered Text:")
     print("In ASCII: ", aes.get_plaintext())
     print("In HEX: ", aes.get_hex_str().lower())
+    print("")
+
+    print("Execution time details:")
+    print("Key schedule: ", key_schedule_time, "seconds")
+    print("Encryption Time: ", encrypt_time, "seconds")
+    print("Decryption Time: ", decrypt_time, "seconds")
 
 
