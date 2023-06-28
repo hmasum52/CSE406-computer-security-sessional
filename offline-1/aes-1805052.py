@@ -255,9 +255,24 @@ class AES:
         for i in range(4):
             self.state_matrix[i] = self.state_matrix[i][i:] + self.state_matrix[i][:i]
 
-    # mix columns
-    def mix_columns(self, state_array):
-        pass
+    # https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_MixColumns_step
+    # https://en.wikipedia.org/wiki/Rijndael_MixColumns#Matrix_representation
+    # Mix Column multiplies fixed matrix against current State Matrix
+    def mix_columns(self):
+        AES_modulus = BitVector(bitstring='100011011')
+        new_state = [[0 for i in range(4)] for j in range(4)]
+        for i in range(4):
+            for j in range(4):
+                val = 0;
+                for k in range(4):
+                    bv1 = BitVector(hexstring=hex(
+                        self.state_matrix[k][j])[2:])
+                    bv2 = Mixer[i][k]
+
+                    bv3 = bv2.gf_multiply_modular(bv1, AES_modulus, 8)
+                    val ^= bv3.int_val()
+                new_state[i][j] = val
+        self.state_matrix = new_state
 
 
 # main 
@@ -275,5 +290,8 @@ if __name__ == "__main__":
     aes.print_state_matrix()
 
     aes.shift_rows()
+    aes.print_state_matrix()
+
+    aes.mix_columns()
     aes.print_state_matrix()
 
