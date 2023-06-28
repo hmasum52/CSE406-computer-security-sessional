@@ -268,6 +268,10 @@ class AES:
 
         # encrypt plaintext
     def encrypt(self, print_state=False):
+        # add text padding if needed
+        self.plaintext = self._padding(self.plaintext)
+        self.key = self._padding(self.key)[:16] # 128 bit key
+
         if print_state: print("Intial state: "); self.print_state_matrix()
 
         # round 0
