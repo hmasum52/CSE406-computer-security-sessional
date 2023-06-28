@@ -238,9 +238,15 @@ class AES:
             for j in range(4):
                 self.state_matrix[i][j] ^= key[i][j]
 
-    # sub bytes
-    def sub_bytes(self, state_array):
-        pass
+    # substitute each entry (byte) of 
+    # current state matrix by corresponding 
+    # entry in AES S-Box
+    def sub_bytes(self):
+        # update state matrix
+        for i in range(4):
+            for j in range(4):
+                self.state_matrix[i][j] = Sbox[self.state_matrix[i][j]]
+
 
     # shift rows
     def shift_rows(self, state_array):
@@ -260,5 +266,8 @@ if __name__ == "__main__":
     aes = AES(key, plaintext)
     aes.print_state_matrix()
     aes.add_round_key(aes.round_keys[0])
+    aes.print_state_matrix()
+
+    aes.sub_bytes()
     aes.print_state_matrix()
 
