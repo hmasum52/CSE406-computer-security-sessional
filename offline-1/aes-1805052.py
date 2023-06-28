@@ -83,16 +83,14 @@ class AES:
         self.state_matrix = self._constract_matrix(plaintext)
 
         # print matrix
-        self._print_matrix(self.key_matrix, key)
+        # self._print_matrix(self.key_matrix, key)
         # print(self._matrix_to_string(self.key_matrix))
 
         # self._print_matrix(self.state_matrix, plaintext)
 
         # generate round keys
-        self.round_keys = self.generate_round_keys()
-        # print keys
-        for i in range(11):
-            print(f"round key {str(i).zfill(2)}: {self._matrix_to_string(self.round_keys[i])}")
+        self.round_keys = self._generate_round_keys(print_round_keys=False)
+        
 
     # text padding to 16 bytes if not 16 bytes
     def _padding(self, text: str):
@@ -138,9 +136,24 @@ class AES:
             text += " "
         return text
     
+    def get_hex_str(self, key=False):
+        matrix = self.key_matrix if key else self.state_matrix
+        hex_txt = self._matrix_to_string(matrix)
+        # remove whitespaces
+        hex_txt = hex_txt.replace(" ", "")
+        return hex_txt
+
     # print current state matrix
     def print_state_matrix(self):
         self._print_matrix(self.state_matrix)
+
+    # print current state as plaintext
+    def get_plaintext(self):
+        hex_str = self._matrix_to_string(self.state_matrix)
+        text = ""
+        for i in hex_str.split():
+            text += chr(int(i, 16))
+        return text
 
     def _rc(self, i:int, prev_rc:int) -> int:
         """
@@ -171,7 +184,7 @@ class AES:
 
     # generate round keys
     # from the key_matrix
-    def generate_round_keys(self):
+    def _generate_round_keys(self, print_round_keys=False):
         # round keys
         round_keys = []
 
@@ -219,6 +232,12 @@ class AES:
             # append new round key
             round_keys.append(new_round_key)
         
+
+        # print keys
+        if print_round_keys:
+            for i in range(11):
+                print(f"round key {str(i).zfill(2)}: {self._matrix_to_string(self.round_keys[i])}")
+            print()
         # return round keys
         return round_keys
 
@@ -233,24 +252,27 @@ class AES:
     # substitute each entry (byte) of 
     # current state matrix by corresponding 
     # entry in AES S-Box
-    def sub_bytes(self):
+    def sub_bytes(self, inverse=False):
+        sub_box = InvSbox if inverse else Sbox
         # update state matrix
         for i in range(4):
             for j in range(4):
-                self.state_matrix[i][j] = Sbox[self.state_matrix[i][j]]
+                self.state_matrix[i][j] = sub_box[self.state_matrix[i][j]]
 
 
     # 4 rows are shifted cyclically to the left
     # by offsets of 0,1,2, and 3
-    def shift_rows(self):
+    def shift_rows(self, inverse=False):
         # update state matrix
         for i in range(4):
-            self.state_matrix[i] = self.state_matrix[i][i:] + self.state_matrix[i][:i]
+            if inverse:
+                self.state_matrix[i] = self.state_matrix[i][4-i:] + self.state_matrix[i][:4-i]
+            else: self.state_matrix[i] = self.state_matrix[i][i:] + self.state_matrix[i][:i]
 
     # https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_MixColumns_step
     # https://en.wikipedia.org/wiki/Rijndael_MixColumns#Matrix_representation
     # Mix Column multiplies fixed matrix against current State Matrix
-    def mix_columns(self):
+    def mix_columns(self, inverse=False):
         AES_modulus = BitVector(bitstring='100011011')
         new_state = [[0 for i in range(4)] for j in range(4)]
         for i in range(4):
@@ -259,7 +281,7 @@ class AES:
                 for k in range(4):
                     bv1 = BitVector(hexstring=hex(
                         self.state_matrix[k][j])[2:])
-                    bv2 = Mixer[i][k]
+                    bv2 = Mixer[i][k] if not inverse else InvMixer[i][k]
 
                     bv3 = bv2.gf_multiply_modular(bv1, AES_modulus, 8)
                     val ^= bv3.int_val()
@@ -297,29 +319,54 @@ class AES:
 
 
     # decrypt ciphertext
-    def decrypt(self):
-        pass
+    def decrypt(self, print_state=False):
+        # round 10 
+        self.add_round_key(self.round_keys[10])
 
+        if print_state: print("round 10:"); self.print_state_matrix()
+
+        # round 9 to 1
+        for i in range(9, 0, -1):
+            self.shift_rows(inverse=True)
+            self.sub_bytes(inverse=True)
+            self.add_round_key(self.round_keys[i])
+            self.mix_columns(inverse=True)
+
+            if print_state: print(f"round {i}:"); self.print_state_matrix()
+
+        # round 0
+        self.shift_rows(inverse=True)
+        self.sub_bytes(inverse=True)
+        self.add_round_key(self.round_keys[0])
 
 # main 
 if __name__ == "__main__":
 
-    key = "Thats my Kung Fu"
-    plaintext = "Two One Nine Two"
+    # key = "Thats my Kung Fu"
+    key = "BUET CSE18 Batch"
+    # plaintext = "Two One Nine Two"
+    plaintext = "Can They Do This"
 
     aes = AES(key, plaintext)
-    # aes.print_state_matrix()
-    # aes.add_round_key(aes.round_keys[0])
-    # aes.print_state_matrix()
+    print("Plain text:")
+    print("In ASCII: ", plaintext)
+    print("In HEX: ", aes.get_hex_str().lower())
+    print("")
 
-    # aes.sub_bytes()
-    # aes.print_state_matrix()
+    print("Key:")
+    print("In ASCII: ", key)
+    print("In HEX: ", aes.get_hex_str(key=True).lower())
+    print("")
 
-    # aes.shift_rows()
-    # aes.print_state_matrix()
+    aes.encrypt(print_state=False)
+    print("Chiper Text:")
+    print("In ASCII: ", aes.get_plaintext())
+    print("In HEX: ", aes.get_hex_str().lower())
+    print("")
 
-    # aes.mix_columns()
-    # aes.print_state_matrix()
+    aes.decrypt(print_state=False)
+    print("Dchiphered Text:")
+    print("In ASCII: ", aes.get_plaintext())
+    print("In HEX: ", aes.get_hex_str().lower())
 
-    aes.encrypt(print_state=True)
 
