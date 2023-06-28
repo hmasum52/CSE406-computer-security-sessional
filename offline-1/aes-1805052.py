@@ -94,6 +94,15 @@ class AES:
         for i in range(11):
             print(f"round key {str(i).zfill(2)}: {self._matrix_to_string(self.round_keys[i])}")
 
+    # text padding to 16 bytes if not 16 bytes
+    def _padding(self, text: str):
+        if len(text) % 16 != 0:
+            text += chr(1) * (16 - len(text) % 16)
+        return text
+    
+    def _unpadding(self, text: str):
+        return text.rstrip(chr(1))
+
     # construct a column major
     # matrix from a string of text
     def _constract_matrix(self, text: str):
@@ -111,10 +120,11 @@ class AES:
     
     # print matrix
     def _print_matrix(self, matrix, text=""):
-        print(f"matrix of text: {text}")
+        if text != "":
+            print(f"matrix of text: {text}")
         for i in range(4):
             for j in range(4):
-                print(hex(matrix[i][j])[2:].upper(), end=" ")
+                print(hex(matrix[i][j])[2:].upper().zfill(2), end=" ")
             print()
         print()
 
@@ -128,7 +138,10 @@ class AES:
             text += " "
         return text
     
-    
+    # print current state matrix
+    def print_state_matrix(self):
+        self._print_matrix(self.state_matrix)
+
     def _rc(self, i:int, prev_rc:int) -> int:
         """
         https://en.wikipedia.org/wiki/AES_key_schedule#Round_constants 
@@ -217,9 +230,13 @@ class AES:
     def decrypt(self):
         pass
 
-    # add round key
-    def add_round_key(self, state_array, round_key):
-        pass
+    # add round key to current state matrix
+    # @param key is the key matrix(column major)
+    def add_round_key(self, key):
+        # update state matrix
+        for i in range(4):
+            for j in range(4):
+                self.state_matrix[i][j] ^= key[i][j]
 
     # sub bytes
     def sub_bytes(self, state_array):
@@ -241,4 +258,7 @@ if __name__ == "__main__":
     plaintext = "Two One Nine Two"
 
     aes = AES(key, plaintext)
+    aes.print_state_matrix()
+    aes.add_round_key(aes.round_keys[0])
+    aes.print_state_matrix()
 
