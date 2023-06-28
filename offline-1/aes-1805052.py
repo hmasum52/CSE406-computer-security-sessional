@@ -222,14 +222,6 @@ class AES:
         # return round keys
         return round_keys
 
-    # encrypt plaintext
-    def encrypt(self):
-        pass
-
-    # decrypt ciphertext
-    def decrypt(self):
-        pass
-
     # add round key to current state matrix
     # @param key is the key matrix(column major)
     def add_round_key(self, key):
@@ -274,6 +266,36 @@ class AES:
                 new_state[i][j] = val
         self.state_matrix = new_state
 
+        # encrypt plaintext
+    def encrypt(self, print_state=False):
+        if print_state: print("Intial state: "); self.print_state_matrix()
+
+        # round 0
+        self.add_round_key(self.round_keys[0])
+
+        if print_state: print("round 0:"); self.print_state_matrix()
+
+        # round 1 to 9
+        for i in range(1, 10):
+            self.sub_bytes()
+            self.shift_rows()
+            self.mix_columns()
+            self.add_round_key(self.round_keys[i])
+
+            if print_state: print(f"round {i}:"); self.print_state_matrix()
+            
+        # round 10
+        self.sub_bytes()
+        self.shift_rows()
+        self.add_round_key(self.round_keys[10])
+
+        if print_state: print("round 10:"); self.print_state_matrix()
+
+
+    # decrypt ciphertext
+    def decrypt(self):
+        pass
+
 
 # main 
 if __name__ == "__main__":
@@ -282,16 +304,18 @@ if __name__ == "__main__":
     plaintext = "Two One Nine Two"
 
     aes = AES(key, plaintext)
-    aes.print_state_matrix()
-    aes.add_round_key(aes.round_keys[0])
-    aes.print_state_matrix()
+    # aes.print_state_matrix()
+    # aes.add_round_key(aes.round_keys[0])
+    # aes.print_state_matrix()
 
-    aes.sub_bytes()
-    aes.print_state_matrix()
+    # aes.sub_bytes()
+    # aes.print_state_matrix()
 
-    aes.shift_rows()
-    aes.print_state_matrix()
+    # aes.shift_rows()
+    # aes.print_state_matrix()
 
-    aes.mix_columns()
-    aes.print_state_matrix()
+    # aes.mix_columns()
+    # aes.print_state_matrix()
+
+    aes.encrypt(print_state=True)
 
