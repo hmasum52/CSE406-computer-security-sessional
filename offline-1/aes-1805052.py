@@ -248,9 +248,12 @@ class AES:
                 self.state_matrix[i][j] = Sbox[self.state_matrix[i][j]]
 
 
-    # shift rows
-    def shift_rows(self, state_array):
-        pass
+    # 4 rows are shifted cyclically to the left
+    # by offsets of 0,1,2, and 3
+    def shift_rows(self):
+        # update state matrix
+        for i in range(4):
+            self.state_matrix[i] = self.state_matrix[i][i:] + self.state_matrix[i][:i]
 
     # mix columns
     def mix_columns(self, state_array):
@@ -269,5 +272,8 @@ if __name__ == "__main__":
     aes.print_state_matrix()
 
     aes.sub_bytes()
+    aes.print_state_matrix()
+
+    aes.shift_rows()
     aes.print_state_matrix()
 
