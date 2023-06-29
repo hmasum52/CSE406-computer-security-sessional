@@ -106,9 +106,10 @@ def gen_n_primes(n:int, k:int):
 
 # p will be safe prime
 # https://crypto.stackexchange.com/questions/56155/primitive-root-of-a-very-big-prime-number-elgamal-ds
-def gen_public_modulus_p(k:int=128)->int:
+def gen_public_modulus_p(k:int=128):
     """
     Generates a public modulus p which is also prime
+    returns p, list of the factors of p-1
     """
     # generate 16 primes each of k/8 bits
     primes = gen_n_primes(8, k//8)
@@ -142,7 +143,7 @@ def is_primitive_root(g:int, p:int, factors)->bool:
 
 # Generate a primitive root modulo n
 # https://en.wikipedia.org/wiki/Primitive_root_modulo_n#Finding_primitive_roots
-def gen_primitive_root(p:int, factors, min, max)->int:
+def gen_public_base_g(p:int, factors, min, max)->int:
     """
     Generates a primitive root modulo p.
     @param n>p, a prime number
@@ -209,7 +210,7 @@ def run_diffie_hellman(k: int=128):
 
     print("Generating primitive root g...")
     start = time.time()
-    g = gen_primitive_root(p, factors, 2, p-2)
+    g = gen_public_base_g(p, factors, 2, p-2)
     end = time.time()
     g_gen_time_ms = (end - start)*1000 # ms
     print("Time taken to generate g:", g_gen_time_ms, "ms")
