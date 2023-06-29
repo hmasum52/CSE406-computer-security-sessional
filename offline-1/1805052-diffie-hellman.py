@@ -15,6 +15,7 @@ References:
 import time
 import random
 from BitVector import *
+from tabulate import tabulate
 
 # left to right binary exponentiation
 # https://en.wikipedia.org/wiki/Modular_exponentiation#Right-to-left_binary_method
@@ -92,6 +93,36 @@ def gen_prime(k:int=128)->int:
         if check:
             return int(bv)
 
+# Generate list of n primes each of k bits
+def gen_n_primes(n:int, k:int):
+    """
+    Generates a list of n primes each of k bits
+    """
+    primes = []
+    for _ in range(n):
+        primes.append(gen_prime(k))
+    return primes
+    
+
+# p will be safe prime
+def gen_public_modulus_p(k:int=128)->int:
+    """
+    Generates a public modulus p which is also prime
+    """
+    # generate 16 primes each of k/8 bits
+    primes = gen_n_primes(8, k//8)
+    primes.append(2)
+    # primes = [gen_prime(k-1), 2] # factors of p-1
+    p = 1
+    for prime in primes:
+        p *= prime
+    p += 1 # p = 2 * product of primes + 1
+
+    while not test_primality(p):
+        return gen_public_modulus_p(k)
+    return p, primes
+
+
 def is_primitive_root(g:int, p:int, factors)->bool:
     """
     Checks if g is a primitive root modulo p
@@ -109,7 +140,7 @@ def is_primitive_root(g:int, p:int, factors)->bool:
 
 # Generate a primitive root modulo n
 # https://en.wikipedia.org/wiki/Primitive_root_modulo_n#Finding_primitive_roots
-def gen_primitive_root(p:int, factors)->int:
+def gen_primitive_root(p:int, factors, min, max)->int:
     """
     Generates a primitive root modulo p.
     @param n>p, a prime number
@@ -117,43 +148,18 @@ def gen_primitive_root(p:int, factors)->int:
     """
     
     while True:
-        # generate a random number in [2, p-2]
-        #  Exactly half of the integers from 2 to p−2 are primitives
-        g = random.randint(2, p-2)
+        g = random.randint(min, max)
         if is_primitive_root(g, p, factors):
             return g
 
 
-# Generate list of n primes each of k bits
-def gen_n_primes(n:int, k:int):
-    """
-    Generates a list of n primes each of k bits
-    """
-    primes = []
-    for _ in range(n):
-        primes.append(gen_prime(k))
-    return primes
-    
-
-def gen_public_modulus_p(k:int=128)->int:
-    """
-    Generates a public modulus p which is also prime
-    """
-    # generate 16 primes each of k/8 bits
-    primes = gen_n_primes(8, k//8)
-
-    # generate p form 16 primes
-    p = 1
-    for prime in primes:
-        p *= prime
-    primes.append(2)
-    p = p*2 + 1 # make p odd
-
-    while not test_primality(p) or p.bit_length() != k:
-        return gen_public_modulus_p(k)
-    return p, primes
 
 class DeffieHellman:
+    """
+    Deffie-Hellman key exchange protocol
+    Generates a public modulus p and a primitive root g modulo p
+    when a new instance is created.
+    """
     def __init__(self, p:int, g:int, k:int=128):
         """
         @param public modulus p>2,  a prime number
@@ -163,13 +169,17 @@ class DeffieHellman:
         self.p = p
         self.g = g
         self.k = k
-        self.private_key = gen_prime(self.k // 2) # a or b
-        # A = g^a mod p or B = g^b mod p
-        self.public_key = mod_pow(self.g, self.private_key, self.p) # A or B
-        while self.public_key.bit_length() != self.k:
-            self.private_key = gen_prime(self.k // 2)
-            self.public_key = mod_pow(self.g, self.private_key, self.p)
 
+        start = time.time()
+        self.private_key = gen_prime(self.k // 2) # a or b (64 bit)
+        end = time.time()
+        self.pk_gen_time_ms = (end - start)*1000 # ms
+
+        # A = g^a mod p or B = g^b mod p
+        start = time.time()
+        self.public_key = mod_pow(self.g, self.private_key, self.p) # A = g^a mod p or B = g^b mod p
+        end = time.time()
+        self.pubk_gen_time_ms = (end - start)*1000 # ms
     
     # generate shared key
     # e.g. K = B^a mod p or K = A^b mod p
@@ -179,43 +189,44 @@ class DeffieHellman:
         Generates a shared key
         """
         key = mod_pow(others_key, self.private_key, self.p)
-        while key.bit_length() != self.k:
-            return self.gen_shared_key(others_key)
         return key
-    
 
-if __name__ == "__main__":
+def run_diffie_hellman(k: int=128):
+    ######################################
     print("Generating public modulus p...")
     start = time.time()
     p, factors = gen_public_modulus_p()
     end = time.time()
-    print("Time taken to generate p:", (end - start)*1000)
+    p_gen_time_ms = (end - start)*1000 # ms
+    print("Time taken to generate p:", p_gen_time_ms, "ms")
     print("p =", p)
     # number of bits in p
     print("Number of bits in p:",p.bit_length())
     print()
-
+    ######################################
 
     print("Generating primitive root g...")
     start = time.time()
-    g = gen_primitive_root(p, factors)
+    g = gen_primitive_root(p, factors, 2, p-2)
     end = time.time()
-    print("Time taken to generate g:", (end - start)*1000)
+    g_gen_time_ms = (end - start)*1000 # ms
+    print("Time taken to generate g:", g_gen_time_ms, "ms")
     print("g =", g)
     # number of bits in g
     print("Number of bits in g:",g.bit_length())
     print()
 
+    ######################################
 
-    print("Generating private and public keys...")
-    start = time.time()
+    print("Generating private and public keys for Alice...")
     alice = DeffieHellman(p, g)
-    print("Alice's public key:", alice.public_key)
-    print("Alice's public key length:", alice.public_key.bit_length())
-    print("Alice's private key:", alice.private_key)
-    print("Alice's private key length:", alice.private_key.bit_length())
+    print("private key:", alice.private_key)
+    print("length:", alice.private_key.bit_length(), "Gen time: ", alice.pk_gen_time_ms, "ms")
+    print("public key:", alice.public_key)
+    print("public key length:", alice.public_key.bit_length())
     print()
 
+    ######################################
     
     bob = DeffieHellman(p, g)
     print("Bob's public key:", bob.public_key)
@@ -224,30 +235,44 @@ if __name__ == "__main__":
     print("Bob's private key length:", bob.private_key.bit_length())
     print()
 
+    ######################################
+
     # # shared key
     alice_shared_key = alice.gen_shared_key(bob.public_key)
     print("Alice's shared key:", alice_shared_key)
     print("Alice's shared key length:", alice_shared_key.bit_length())
     print()
 
+    start = time.time()
     bob_shared_key = bob.gen_shared_key(alice.public_key)
+    end = time.time()
+    shared_key_gen_time_ms = (end - start)*1000 # ms
     print("Bob's shared key:", bob_shared_key)
     print("Bob's shared key length:", bob_shared_key.bit_length())
+    
+    return [k, p_gen_time_ms, g_gen_time_ms,
+            alice.pk_gen_time_ms, alice.pubk_gen_time_ms,
+            bob.pk_gen_time_ms, bob.pubk_gen_time_ms,
+            shared_key_gen_time_ms]
+
+# run diffie hellman train number of time and take average
+def run_diffie_hellman_avg(k: int, trail: int):
+    times = [0] * 7  # Initialize a list to store the accumulated times
+
+    for _ in range(trail):
+        res = run_diffie_hellman(k)
+        times = [t + r for t, r in zip(times, res[1:8])]  # Accumulate the times
+
+    times = [t / trail for t in times]  # Calculate the average times
+
+    return [k] + times
 
 
+if __name__ == "__main__":
+    table = [["k", "p(ms)", "g(ms)","alice a", 
+            "alice A", "bob b", "bob B", "shared key"]]
+    for k in [128, 192, 256]:
+        table.append(run_diffie_hellman_avg(k, 5))
 
-
-    # # print hex representation of shared key in 4*4 column major matrix
-    # def hex_matrix(n:int, rows:int, cols:int)->str:
-    #     """
-    #     Returns hex representation of n in rows*cols column major matrix
-    #     """
-    #     hex_str = hex(n)[2:]
-    #     hex_str = '0'*(rows*cols - len(hex_str)) + hex_str
-    #     hex_str = hex_str.upper()
-    #     hex_str = ' '.join(hex_str[i:i+2] for i in range(0, len(hex_str), 2))
-    #     return hex_str
-
-    # print("Hex representation of shared key in 4*4 column major matrix:")
-    # print(hex_matrix(alice_shared_key, 4, 4))
-    # print()
+    print()
+    print(tabulate(table, headers="firstrow", tablefmt="grid"))
