@@ -9,6 +9,7 @@ References:
     - https://en.wikipedia.org/wiki/Primitive_root_modulo_n
     - https://crypto.stackexchange.com/questions/56155/primitive-root-of-a-very-big-prime-number-elgamal-ds
     - https://en.wikipedia.org/wiki/Modular_exponentiation
+    - https://ahmed-tahir.medium.com/diffie-hellman-key-exchange-algorithm-in-python-97c2abc855a5
     Diffie-Hellman Key Exchange
 """
 import time
@@ -43,6 +44,7 @@ def test_primality(n:int)->bool:
         return False
 
     # step-1: Testing against small sets of bases
+    # https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test#Testing_against_small_sets_of_bases
     small_primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41]
     if n in small_primes:
         return True # prime
@@ -58,9 +60,8 @@ def test_primality(n:int)->bool:
         d >>=1
 
     # Run Miller-Rabin primality test k times
-    #for _ in range(k):
+    # https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test#Miller_test
     for a in small_primes:
-        # a = random.randint(2, n - 2)
         x = mod_pow(a, d, n)
         if x == 1 or x == n - 1:
             continue
@@ -91,116 +92,162 @@ def gen_prime(k:int=128)->int:
         if check:
             return int(bv)
 
-# Generate a primitive root modulo n
-# https://en.wikipedia.org/wiki/Primitive_root_modulo_n
-def gen_primitive_root(n:int)->int:
+def is_primitive_root(g:int, p:int, factors)->bool:
     """
-    Generates a primitive root modulo n
-    @param n>2, a prime number
+    Checks if g is a primitive root modulo p
+    @param g, an integer
+    @param p, a prime number
     """
-    # find prime factors of n-1
-    # n-1 = 2^s * t
-    s, t = 0, n - 1
-    while t % 2 == 0:
-        s += 1
-        t >>= 1
+    # check if g is a primitive root modulo p
+    # https://en.wikipedia.org/wiki/Primitive_root_modulo_n#Finding_primitive_roots
+    # step-1: compute phi(p) = p-1
+    phi = p - 1 # Euler's totient function
+    for prime in factors:
+        if mod_pow(g, phi // prime, p) == 1:
+            return False
+    return True
 
-    # find a primitive root modulo n
-    # https://crypto.stackexchange.com/questions/56155/primitive-root-of-a-very-big-prime-number-elgamal-ds
+# Generate a primitive root modulo n
+# https://en.wikipedia.org/wiki/Primitive_root_modulo_n#Finding_primitive_roots
+def gen_primitive_root(p:int, factors)->int:
+    """
+    Generates a primitive root modulo p.
+    @param n>p, a prime number
+    @param factors, a list of prime factors of p-1
+    """
+    
     while True:
-        g = random.randint(2, n - 1)
-        if mod_pow(g, t, n) != 1:
+        # generate a random number in [2, p-2]
+        #  Exactly half of the integers from 2 to p−2 are primitives
+        g = random.randint(2, p-2)
+        if is_primitive_root(g, p, factors):
             return g
 
+
+# Generate list of n primes each of k bits
+def gen_n_primes(n:int, k:int):
+    """
+    Generates a list of n primes each of k bits
+    """
+    primes = []
+    for _ in range(n):
+        primes.append(gen_prime(k))
+    return primes
+    
+
+def gen_public_modulus_p(k:int=128)->int:
+    """
+    Generates a public modulus p which is also prime
+    """
+    # generate 16 primes each of k/8 bits
+    primes = gen_n_primes(8, k//8)
+
+    # generate p form 16 primes
+    p = 1
+    for prime in primes:
+        p *= prime
+    primes.append(2)
+    p = p*2 + 1 # make p odd
+
+    while not test_primality(p) or p.bit_length() != k:
+        return gen_public_modulus_p(k)
+    return p, primes
+
 class DeffieHellman:
-    def __init__(self, p:int, g:int):
+    def __init__(self, p:int, g:int, k:int=128):
         """
         @param public modulus p>2,  a prime number
         @param public base g g, a primitive root modulo p
+        @param k, number of bits of p
         """
         self.p = p
         self.g = g
+        self.k = k
+        self.private_key = gen_prime(self.k // 2) # a or b
+        # A = g^a mod p or B = g^b mod p
+        self.public_key = mod_pow(self.g, self.private_key, self.p) # A or B
+        while self.public_key.bit_length() != self.k:
+            self.private_key = gen_prime(self.k // 2)
+            self.public_key = mod_pow(self.g, self.private_key, self.p)
 
-    def gen_private_key(self)->int:
-        """
-        Generates a private key
-        """
-        return random.randint(2, self.p - 2)
-
-    def gen_public_key(self, private_key:int)->int:
-        """
-        Generates a public key
-        """
-        return mod_pow(self.g, private_key, self.p)
     
-    def gen_shared_key(self, private_key:int, public_key:int)->int:
+    # generate shared key
+    # e.g. K = B^a mod p or K = A^b mod p
+    # or K = g^(ab) mod p
+    def gen_shared_key(self, others_key:int)->int:
         """
         Generates a shared key
         """
-        return mod_pow(public_key, private_key, self.p)
+        key = mod_pow(others_key, self.private_key, self.p)
+        while key.bit_length() != self.k:
+            return self.gen_shared_key(others_key)
+        return key
     
-    def gen_keys(self)->tuple:
-        """
-        Generates a private key and a public key
-        """
-        private_key = self.gen_private_key()
-        public_key = self.gen_public_key(private_key)
-        return private_key, public_key
+
+if __name__ == "__main__":
+    print("Generating public modulus p...")
+    start = time.time()
+    p, factors = gen_public_modulus_p()
+    end = time.time()
+    print("Time taken to generate p:", (end - start)*1000)
+    print("p =", p)
+    # number of bits in p
+    print("Number of bits in p:",p.bit_length())
+    print()
 
 
-print("Generating prime numbers p and q...")
-start = time.time()
-p = gen_prime(128)
-end = time.time()
-print("Time taken to generate p:", (end - start)*1000)
-print("p =", p)
-print()
-
-print("Generating primitive root g...")
-start = time.time()
-g = gen_primitive_root(p)
-end = time.time()
-print("Time taken to generate g:", (end - start)*1000)
-print("g =", g)
+    print("Generating primitive root g...")
+    start = time.time()
+    g = gen_primitive_root(p, factors)
+    end = time.time()
+    print("Time taken to generate g:", (end - start)*1000)
+    print("g =", g)
+    # number of bits in g
+    print("Number of bits in g:",g.bit_length())
+    print()
 
 
-print("Generating private and public keys...")
-start = time.time()
+    print("Generating private and public keys...")
+    start = time.time()
+    alice = DeffieHellman(p, g)
+    print("Alice's public key:", alice.public_key)
+    print("Alice's public key length:", alice.public_key.bit_length())
+    print("Alice's private key:", alice.private_key)
+    print("Alice's private key length:", alice.private_key.bit_length())
+    print()
 
-alice = DeffieHellman(p, g)
-alice_private_key, alice_public_key = alice.gen_keys()
-print("Alice's private key:", alice_private_key)
-print("Alice's public key:", alice_public_key)
-print()
+    
+    bob = DeffieHellman(p, g)
+    print("Bob's public key:", bob.public_key)
+    print("Bob's public key length:", bob.public_key.bit_length())
+    print("Bob's private key:", bob.private_key)
+    print("Bob's private key length:", bob.private_key.bit_length())
+    print()
 
-bob = DeffieHellman(p, g)
-bob_private_key, bob_public_key = bob.gen_keys()
-print("Bob's private key:", bob_private_key)
-print("Bob's public key:", bob_public_key)
-print()
-end = time.time()
+    # # shared key
+    alice_shared_key = alice.gen_shared_key(bob.public_key)
+    print("Alice's shared key:", alice_shared_key)
+    print("Alice's shared key length:", alice_shared_key.bit_length())
+    print()
 
-# shared key
-alice_shared_key = alice.gen_shared_key(alice_private_key, bob_public_key)
-bob_shared_key = bob.gen_shared_key(bob_private_key, alice_public_key)
-print("Alice's shared key:", alice_shared_key)
-print("Bob's shared key:", bob_shared_key)
+    bob_shared_key = bob.gen_shared_key(alice.public_key)
+    print("Bob's shared key:", bob_shared_key)
+    print("Bob's shared key length:", bob_shared_key.bit_length())
 
-# number of bits in shared key
-print("Number of bits in shared key:", len(bin(alice_shared_key)[2:]))
-# hex representation of shared key
-print("Hex representation of shared key:", hex(alice_shared_key))
-# print hex representation of shared key in 4*4 column major matrix
-def hex_matrix(n:int, rows:int, cols:int)->str:
-    """
-    Returns hex representation of n in rows*cols column major matrix
-    """
-    hex_str = hex(n)[2:]
-    hex_str = '0'*(rows*cols - len(hex_str)) + hex_str
-    hex_str = hex_str.upper()
-    hex_str = ' '.join(hex_str[i:i+2] for i in range(0, len(hex_str), 2))
-    return hex_str
 
-print("Hex representation of shared key in 4*4 column major matrix:")
-print(hex_matrix(alice_shared_key, 4, 4))
-print()
+
+
+    # # print hex representation of shared key in 4*4 column major matrix
+    # def hex_matrix(n:int, rows:int, cols:int)->str:
+    #     """
+    #     Returns hex representation of n in rows*cols column major matrix
+    #     """
+    #     hex_str = hex(n)[2:]
+    #     hex_str = '0'*(rows*cols - len(hex_str)) + hex_str
+    #     hex_str = hex_str.upper()
+    #     hex_str = ' '.join(hex_str[i:i+2] for i in range(0, len(hex_str), 2))
+    #     return hex_str
+
+    # print("Hex representation of shared key in 4*4 column major matrix:")
+    # print(hex_matrix(alice_shared_key, 4, 4))
+    # print()
