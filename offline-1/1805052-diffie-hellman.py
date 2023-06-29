@@ -105,6 +105,7 @@ def gen_n_primes(n:int, k:int):
     
 
 # p will be safe prime
+# https://crypto.stackexchange.com/questions/56155/primitive-root-of-a-very-big-prime-number-elgamal-ds
 def gen_public_modulus_p(k:int=128)->int:
     """
     Generates a public modulus p which is also prime
@@ -123,6 +124,7 @@ def gen_public_modulus_p(k:int=128)->int:
     return p, primes
 
 
+# https://en.wikipedia.org/wiki/Primitive_root_modulo_n#Finding_primitive_roots
 def is_primitive_root(g:int, p:int, factors)->bool:
     """
     Checks if g is a primitive root modulo p
