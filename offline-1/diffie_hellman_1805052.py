@@ -113,6 +113,7 @@ def gen_public_modulus_p(k:int=128):
     """
     # generate 16 primes each of k/8 bits
     primes = gen_n_primes(8, k//8)
+    # primes = [gen_prime(k-1)]
     primes.append(2)
     # primes = [gen_prime(k-1), 2] # factors of p-1
     p = 1
@@ -120,7 +121,7 @@ def gen_public_modulus_p(k:int=128):
         p *= prime
     p += 1 # p = 2 * product of primes + 1
 
-    while not test_primality(p):
+    while not test_primality(p) or p.bit_length() != k:
         return gen_public_modulus_p(k)
     return p, primes
 
