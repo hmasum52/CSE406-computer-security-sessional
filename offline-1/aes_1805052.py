@@ -298,7 +298,7 @@ class AES:
 
         chipher_data = bytearray()
         n_block = len(self.data) # number of blocks
-        print(f"number of blocks: {n_block//16} to encrypt")
+        # print(f"number of blocks: {n_block//16} to encrypt")
         for i in range(0, n_block, 16):
             block = self.data[i:i+16]
             self.state_matrix = self._constract_matrix(block)
@@ -329,7 +329,7 @@ class AES:
             chipher_data += self.get_state_as_bytes() #self.get_state_as_text()
             # print # as progress
             # print(".", end="")
-        print()
+        # print()
 
         return chipher_data
 

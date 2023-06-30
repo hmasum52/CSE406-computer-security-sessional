@@ -45,29 +45,70 @@ def save_private_key(key, file_name):
     print("Private key saved to file!")
     print()
 
+# send text message to bob
+def send_text(aes: AES, client: socket):
+    print("Sending message type to Bob...")
+    client.sendall(aes.encrypt("text".encode())) # send type
+    print("Type sent!")
+
+    message = input("Enter message: ")
+    encrypted_message = aes.encrypt(message.encode())
+    print("Encrypted message:", encrypted_message.decode(errors="ignore"))
+    # send message to bob
+    print("Sending text message to Bob...")
+    client.sendall(encrypted_message) # send bytes
+    print("Message sent!")
+
+    wait_for_reply = input("Do you want to wait for reply? (y/n): ")
+    while wait_for_reply != "y" and wait_for_reply != "n":
+        print("Invalid input!")
+        wait_for_reply = input("Do you want to wait for reply? (y/n): ")
+
+    if wait_for_reply == "y":
+        receive_text(aes, client)
+    print()
+
+def receive_text(aes: AES, client: socket):
+    print("Waiting for Bob's message...")
+    message = client.recv(BUFFER_SIZE)
+    print("Message received!")
+    print("Encrypted message:", message.decode(errors="ignore"))
+    print("Decrypted message:", aes.decrypt(message).decode(errors="ignore"))
+    print()
+
 def send(aes: AES, client: socket):
     while(True):
         type = input("Enter 1 for text, 2 for file, 3 for esc: ")
         if type == "1":
-            print("Sending message type to Bob...")
-            client.sendall(aes.encrypt("text".encode())) # send type
-            print("Type sent!")
-
-            
-            message = input("Enter message: ")
-            print("Original Message:", message)
-            
-            encrypted_message = aes.encrypt(message.encode())
-            print("Encrypted message:", encrypted_message.decode(errors="ignore"))
-            # send message to bob
-            print("Sending text message to Bob...")
-            client.sendall(encrypted_message) # send bytes
-            print("Message sent!")
-            print()
+            send_text(aes, client)
         elif type == "2":
+            file_name = input("Enter file name: ")
+
             client.sendall(aes.encrypt("file".encode())) # send type
+
+            print("Encrypting file...")
+            data = aes.encrypt_file(file_name)
+            print("File encrypted!")
+            print()
+
+            print("Sending file to Bob...")
+            client.sendall(data)
+            print("File sent!")
+            print()
+
+            # send file name to bob
+            print("Sending file name to Bob...")
+            client.sendall(aes.encrypt(file_name.encode()))
+            print("File name sent!")
+            print()
+
         elif type == "3":
+            # send exit message to bob
+            print("Sending exit message to Bob...")
+            client.sendall(aes.encrypt("exit".encode()))
+            print("Exit message sent!")
             break
+
 
 def exchange_keys(client:socket, alice:DiffieHellman):
     # create data
@@ -151,19 +192,7 @@ if __name__ == "__main__":
     aes = AES(str(shared_key))
     if data == "ready":
         print("Bob is ready!")
-
-        while(True):
-            send_or_receive = input("Enter 1 for send, 2 for receive, 3 for esc: ")
-            if send_or_receive == "1":
-                send(aes, client)
-            elif send_or_receive == "2":
-                pass
-            elif send_or_receive == "3":
-                # send exit message to bob
-                print("Sending exit message to Bob...")
-                client.sendall(aes.encrypt("exit".encode()))
-                print("Exit message sent!")
-                break
+        send(aes, client)
     else:
         print("Bob is not ready!")
 

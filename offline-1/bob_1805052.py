@@ -89,6 +89,59 @@ def generate_shared_key(bob:DiffieHellman, A:int):
 
     return shared_key
 
+def receive_text(aes, s:socket):
+    print("Waiting for encrypted message from Alice...")
+    data:bytes = s.recv(BUFFER_SIZE) # received encrypted message as bytes
+    print("Encrypted message received!")
+    print("Encrypted message:", data.decode(errors="ignore"))
+    print()
+
+    # decrypt message
+    print("Decrypting message...")
+    message = aes.decrypt(data).decode()
+    print("Decrypted message:", message)
+    print()
+
+    return message
+
+def send_text(aes: AES, client: socket):
+    message = input("Enter message: ")
+    encrypted_message = aes.encrypt(message.encode())
+    print("Encrypted message:", encrypted_message.decode(errors="ignore"))
+    # send message to Alice
+    print("Sending text message to Alice...")
+    client.sendall(encrypted_message) # send bytes
+    print("Message sent!")
+    print()
+
+def receive_and_save_file(aes:AES, s:socket):
+    print("Waiting for encrypted file from Alice...")
+    data:bytes = s.recv(BUFFER_SIZE) # received encrypted file as bytes
+    print("Encrypted file received!")
+    # print("Encrypted file:", data.decode(errors="ignore"))
+    print()
+
+    # decrypt file
+    print("Decrypting file...")
+    file = aes.decrypt(data)
+    print("File decrypted!")
+    print()
+
+    # get file name
+    print("Waiting for file name from Alice...")
+    file_name = aes.decrypt(s.recv(BUFFER_SIZE)).decode()
+    print("File name received!")
+    print("File name:", file_name)
+    print()
+
+    # save file
+    print("Saving file...")
+    with open(f"bob_{file_name}", "wb") as f:
+        f.write(file)
+        f.close()
+    print("File saved!")
+    print()
+
 if __name__ == "__main__":
 
     # s is alice socket
@@ -101,9 +154,12 @@ if __name__ == "__main__":
     # generate shared key
     shared_key = generate_shared_key(bob, A)
 
+    aes = AES(str(shared_key))
+
     # get ready message from Alice
     print("Waiting for Alice to send ready message...")
     data = s.recv(BUFFER_SIZE).decode()
+
     if data == "ready":
         print("Alice is ready!")
         print()
@@ -116,23 +172,17 @@ if __name__ == "__main__":
 
         # receive encrypted message from Alice
         while True:
-            print("Waiting for encrypted message from Alice...")
-            data:bytes = s.recv(BUFFER_SIZE) # received encrypted message as bytes
-            print("Encrypted message received!")
-            print("Encrypted message:", data.decode(errors="ignore"))
-            print()
-
-            # decrypt message
-            print("Decrypting message...")
-            aes = AES(str(shared_key))
-            message = aes.decrypt(data).decode()
-            print("Decrypted message:", message)
-            print()
-
+            message = receive_text(aes, s)
             if message == "text":
-                continue # receive a text
+                _ = receive_text(aes, s)
+                reply = input("Do you want to reply? (y/n): ")
+                while reply != "y" and reply != "n":
+                    print("Invalid input!")
+                    reply = input("Do you want to reply? (y/n): ")
+                if reply == "y":
+                    send_text(aes, s)
             elif message == "file":
-                pass # receive a file
+                receive_and_save_file(aes, s)
             elif message == "exit":
                 print("Alice left the conversatoin!")
                 break
