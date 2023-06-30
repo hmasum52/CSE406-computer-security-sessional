@@ -4,6 +4,8 @@
     - https://www.youtube.com/watch?v=rmqWaktEpcw
     - https://www.cryptool.org/en/cto/aes-step-by-step
     - AES Encryption Simulation - slide
+    - PKCS#7 padding  - https://www.youtube.com/watch?v=iZe_q3qW1cE
+                    - https://www.youtube.com/watch?v=3OTMLUEPZUc
 
     Here will implement AES-128
     - 128 bit key
@@ -71,36 +73,38 @@ InvMixer = [
     [BitVector(hexstring="0B"), BitVector(hexstring="0D"), BitVector(hexstring="09"), BitVector(hexstring="0E")]
 ]
 
+def str_to_hex(text: str):
+    return BitVector(textstring=text).get_hex_string_from_bitvector()
+
+class PaddingError(Exception):
+    pass
+
+# https://www.youtube.com/watch?v=3OTMLUEPZUc
+def psck7_pad(b: bytes, block_size: int):
+    pad_len = block_size - (len(b) % block_size)
+    return b + pad_len * bytes([pad_len])
+
+def psck7_unpad(b: bytes):
+    pad_len = b[-1]
+    if pad_len == 0 or len(b) < pad_len or not b.endswith(bytes([pad_len]) * pad_len):
+        raise PaddingError("Invalid padding")
+    return b[:-pad_len]
+
 # AES class to encrypt and decrypt
 class AES:
     # constructor with key and plaintext
-    def __init__(self, key:str, plaintext:str):
+    def __init__(self, key:str):
         self.key = key
-        self.plaintext = plaintext
+
+        # padding key 
+        self.key = self._padding(self.key)[:16]
 
         # convert key and plaintext to matrix
         self.key_matrix = self._constract_matrix(key)
-        self.state_matrix = self._constract_matrix(plaintext)
-
-        # print matrix
-        # self._print_matrix(self.key_matrix, key)
-        # print(self._matrix_to_string(self.key_matrix))
-
-        # self._print_matrix(self.state_matrix, plaintext)
 
         # generate round keys
         self.round_keys = self._generate_round_keys(print_round_keys=False)
         
-
-    # text padding to 16 bytes if not 16 bytes
-    def _padding(self, text: str):
-        if len(text) % 16 != 0:
-            text += chr(1) * (16 - len(text) % 16)
-        return text
-    
-    def _unpadding(self, text: str):
-        return text.rstrip(chr(1))
-
     # construct a column major
     # matrix from a string of text
     def _constract_matrix(self, text: str):
@@ -135,20 +139,13 @@ class AES:
                 text += hex(matrix[i][j])[2:].upper().zfill(2)+" "
             text += " "
         return text
-    
-    def get_hex_str(self, key=False):
-        matrix = self.key_matrix if key else self.state_matrix
-        hex_txt = self._matrix_to_string(matrix)
-        # remove whitespaces
-        hex_txt = hex_txt.replace(" ", "")
-        return hex_txt
 
     # print current state matrix
     def print_state_matrix(self):
         self._print_matrix(self.state_matrix)
 
     # print current state as plaintext
-    def get_plaintext(self):
+    def get_state_as_text(self):
         hex_str = self._matrix_to_string(self.state_matrix)
         text = ""
         for i in hex_str.split():
@@ -167,7 +164,6 @@ class AES:
         if prev_rc < 0x80:
             return 2 * prev_rc
         return (2 * prev_rc) ^ 0x11B 
-
 
     # substitute bytes
     def _g(self, w:int , rc:int) -> int:
@@ -259,7 +255,6 @@ class AES:
             for j in range(4):
                 self.state_matrix[i][j] = sub_box[self.state_matrix[i][j]]
 
-
     # 4 rows are shifted cyclically to the left
     # by offsets of 0,1,2, and 3
     def shift_rows(self, inverse=False):
@@ -289,55 +284,79 @@ class AES:
         self.state_matrix = new_state
 
         # encrypt plaintext
-    def encrypt(self, print_state=False):
+    def encrypt(self, plaintext:str, print_state=False):
         # add text padding if needed
-        self.plaintext = self._padding(self.plaintext)
-        self.key = self._padding(self.key)[:16] # 128 bit key
+        self.plaintext = psck7_pad(plaintext.encode(), 16).decode() #self._padding(plaintext)
+        # print(f"padded plaintext: {self.plaintext}")
 
-        if print_state: print("Intial state: "); self.print_state_matrix()
+        chipher_text = ""
+        for i in range(0, len(self.plaintext), 16):
+            block = self.plaintext[i:i+16]
+            self.state_matrix = self._constract_matrix(block)
 
-        # round 0
-        self.add_round_key(self.round_keys[0])
+            if print_state: print("Intial state: "); self.print_state_matrix()
 
-        if print_state: print("round 0:"); self.print_state_matrix()
+            # round 0
+            self.add_round_key(self.round_keys[0])
 
-        # round 1 to 9
-        for i in range(1, 10):
+            if print_state: print("round 0:"); self.print_state_matrix()
+
+            # round 1 to 9
+            for i in range(1, 10):
+                self.sub_bytes()
+                self.shift_rows()
+                self.mix_columns()
+                self.add_round_key(self.round_keys[i])
+
+                if print_state: print(f"round {i}:"); self.print_state_matrix()
+                
+            # round 10
             self.sub_bytes()
             self.shift_rows()
-            self.mix_columns()
-            self.add_round_key(self.round_keys[i])
+            self.add_round_key(self.round_keys[10])
 
-            if print_state: print(f"round {i}:"); self.print_state_matrix()
-            
-        # round 10
-        self.sub_bytes()
-        self.shift_rows()
-        self.add_round_key(self.round_keys[10])
+            if print_state: print("round 10:"); self.print_state_matrix()
 
-        if print_state: print("round 10:"); self.print_state_matrix()
+            # get ciphertext
+            chipher_text += self.get_state_as_text()
 
+        return chipher_text
 
     # decrypt ciphertext
-    def decrypt(self, print_state=False):
-        # round 10 
-        self.add_round_key(self.round_keys[10])
+    def decrypt(self, encryptedtext, print_state=False):
 
-        if print_state: print("round 10:"); self.print_state_matrix()
+        # decrypt ciphertext
+        decypted_text = ""
+        for i in range(0, len(encryptedtext), 16):
+            block = encryptedtext[i:i+16]
+            self.state_matrix = self._constract_matrix(block)
 
-        # round 9 to 1
-        for i in range(9, 0, -1):
+            # round 10 
+            self.add_round_key(self.round_keys[10])
+
+            if print_state: print("round 10:"); self.print_state_matrix()
+
+            # round 9 to 1
+            for i in range(9, 0, -1):
+                self.shift_rows(inverse=True)
+                self.sub_bytes(inverse=True)
+                self.add_round_key(self.round_keys[i])
+                self.mix_columns(inverse=True)
+
+                if print_state: print(f"round {i}:"); self.print_state_matrix()
+
+            # round 0
             self.shift_rows(inverse=True)
             self.sub_bytes(inverse=True)
-            self.add_round_key(self.round_keys[i])
-            self.mix_columns(inverse=True)
+            self.add_round_key(self.round_keys[0])
 
-            if print_state: print(f"round {i}:"); self.print_state_matrix()
+            decypted_text += self.get_state_as_text()
 
-        # round 0
-        self.shift_rows(inverse=True)
-        self.sub_bytes(inverse=True)
-        self.add_round_key(self.round_keys[0])
+        # self._unpadding(decypted_text)
+        # print("decyprted: ", decypted_text)
+        decypted_text = psck7_unpad(decypted_text.encode()).decode()
+
+        return decypted_text
 
 # main 
 if __name__ == "__main__":
@@ -345,39 +364,39 @@ if __name__ == "__main__":
     # key = "Thats my Kung Fu"
     key = "BUET CSE18 Batch"
     # plaintext = "Two One Nine Two"
-    plaintext = "Can They Do This"
+    plaintext = "Can They Do This BOB"
 
     start = time.time() # start time
-    aes = AES(key, plaintext)
+    aes = AES(key)
     end = time.time() # end time
     key_schedule_time = end - start
 
     print("Plain text:")
     print("In ASCII: ", plaintext)
-    print("In HEX: ", aes.get_hex_str().lower())
+    print("In HEX: ", str_to_hex(plaintext).lower())
     print("")
 
     print("Key:")
     print("In ASCII: ", key)
-    print("In HEX: ", aes.get_hex_str(key=True).lower())
+    print("In HEX: ", str_to_hex(key).lower())
     print("")
 
     start = time.time() # start time
-    aes.encrypt(print_state=False)
+    encrypted_text = aes.encrypt(plaintext, print_state=False)
     end = time.time() # end time
     encrypt_time = end - start
     print("Chiper Text:")
-    print("In ASCII: ", aes.get_plaintext())
-    print("In HEX: ", aes.get_hex_str().lower())
+    print("In ASCII: ", encrypted_text)
+    print("In HEX: ", str_to_hex(encrypted_text).lower() )
     print("")
 
     start = time.time() # start time
-    aes.decrypt(print_state=False)
+    decypted_text = aes.decrypt(encrypted_text, print_state=False)
     end = time.time() # end time
     decrypt_time = end - start
     print("Dchiphered Text:")
-    print("In ASCII: ", aes.get_plaintext())
-    print("In HEX: ", aes.get_hex_str().lower())
+    print("In ASCII: ", decypted_text)
+    print("In HEX: ", str_to_hex(decypted_text).lower() )
     print("")
 
     print("Execution time details:")
