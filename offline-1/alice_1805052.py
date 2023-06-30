@@ -69,35 +69,13 @@ def send(aes: AES, client: socket):
         elif type == "3":
             break
 
-if __name__ == "__main__":
-    # generate p and g
-    p, primes = gen_public_modulus_p()
-    g = gen_public_base_g(p, primes, 2, p-2)
-    
-
-    # Generate private and public keys for Alice
-    alice = DeffieHellman(p, g)
-    print("Alice's private key:", alice.private_key)
-    print("Alice's public key:", alice.public_key)
-
-    # save private key to file
-    save_private_key(alice.private_key, "alice_priv_key.txt")
-
-    A = alice.public_key # g^a mod p
-
+def exchange_keys(client:socket, alice:DeffieHellman):
     # create data
     data = {
-        "p": p,
-        "g": g,
-        "A": A
+        "p": alice.p,
+        "g": alice.g,
+        "A": alice.public_key # g^a mod p
     }
-
-    # create socket
-    s = create_server()
-    print("Waiting for Bob ...")
-    client, addr = s.accept() # Blocking call
-    print("Bob is here!")
-    print()
 
     # send data to bob
     print("Sending p,g,A to Bob...")
@@ -114,8 +92,10 @@ if __name__ == "__main__":
     print("Bob's public key:", B)
     print()
 
+    return B
 
-    # compute shared secret key
+
+def generate_shared_key(alice:DeffieHellman, B:int)-> int:
     shared_key = alice.gen_shared_key(B)
     print("Alice's shared secret key:", shared_key)
 
@@ -126,6 +106,37 @@ if __name__ == "__main__":
         str(shared_key))
     print("Shared key saved to file!")
     print()
+
+    return shared_key
+
+if __name__ == "__main__":
+    # generate p and g
+    p, primes = gen_public_modulus_p()
+    g = gen_public_base_g(p, primes, 2, p-2)
+    
+
+    # Generate private and public keys for Alice
+    alice = DeffieHellman(p, g)
+    print("Alice's private key:", alice.private_key)
+    print("Alice's public key:", alice.public_key)
+
+    # save private key to file
+    save_private_key(alice.private_key, "alice_priv_key.txt")
+
+    # create socket
+    s = create_server()
+    print("Waiting for Bob ...")
+    client, addr = s.accept() # Blocking call
+    print("Bob is here!")
+    print()
+
+    # exchange keys
+    # send p,g and A = g^a(mod p) to bob
+    # receive B = g^b(mod p) from bob
+    B = exchange_keys(client, alice)
+
+    # compute shared secret key
+    shared_key  = generate_shared_key(alice, B)
     
     # inform bob that alice is ready to send message
     print("Sending ready message to Bob...")
@@ -147,7 +158,7 @@ if __name__ == "__main__":
                 send(aes, client)
             elif send_or_receive == "2":
                 pass
-            else:
+            elif send_or_receive == "3":
                 # send exit message to bob
                 print("Sending exit message to Bob...")
                 client.sendall(aes.encrypt("exit".encode()))
