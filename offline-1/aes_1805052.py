@@ -73,8 +73,6 @@ InvMixer = [
     [BitVector(hexstring="0B"), BitVector(hexstring="0D"), BitVector(hexstring="09"), BitVector(hexstring="0E")]
 ]
 
-def str_to_hex(text: str):
-    return BitVector(textstring=text).get_hex_string_from_bitvector()
 
 class PaddingError(Exception):
     pass
@@ -94,30 +92,28 @@ def psck7_unpad(b: bytes):
 class AES:
     # constructor with key and plaintext
     def __init__(self, key:str):
+        # temporary matrix
         self.key = key
 
         # padding key 
-        self.key = self._padding(self.key)[:16]
+        self.key = psck7_pad(self.key.encode(), 16).decode()
 
         # convert key and plaintext to matrix
-        self.key_matrix = self._constract_matrix(key)
+        self.key_matrix = self._constract_matrix(key.encode())
 
         # generate round keys
         self.round_keys = self._generate_round_keys(print_round_keys=False)
         
     # construct a column major
     # matrix from a string of text
-    def _constract_matrix(self, text: str):
+    def _constract_matrix(self, data: bytes):
         # 4 * 4 matrix column major 
-        # matrix of hex value of text
         matrix = [[-1 for i in range(4)] for j in range(4)]
-
+    
         # make column major matrix
-        for j in range(4):
-            for i in range(4):
-                # matrix[i][j] = text[j*4 + i]
-                # matrix[i][j] = hex(ord(text[j*4 + i]))
-                matrix[i][j] = ord(text[j*4 + i])
+        for i in range(4):
+            for j in range(4):
+                matrix[j][i] = data[i*4+j]
         return matrix
     
     # print matrix
@@ -130,15 +126,21 @@ class AES:
             print()
         print()
 
-    # column matrix to string
+    # column major matrix to string
     def _matrix_to_string(self, matrix):
         text = ""
         for j in range(4):
             for i in range(4):
-                # text += chr(int(matrix[i][j], 16))
-                text += hex(matrix[i][j])[2:].upper().zfill(2)+" "
+                text += hex(matrix[i][j])[2:].zfill(2) + " "
             text += " "
         return text
+    
+    def _matrix_to_bytes(self, matrix):
+        b = bytearray()
+        for j in range(4):
+            for i in range(4):
+                b.append(matrix[i][j])
+        return bytes(b)
 
     # print current state matrix
     def print_state_matrix(self):
@@ -151,6 +153,9 @@ class AES:
         for i in hex_str.split():
             text += chr(int(i, 16))
         return text
+    
+    def get_state_as_bytes(self):
+        return self._matrix_to_bytes(self.state_matrix)
 
     def _rc(self, i:int, prev_rc:int) -> int:
         """
@@ -232,7 +237,7 @@ class AES:
         # print keys
         if print_round_keys:
             for i in range(11):
-                print(f"round key {str(i).zfill(2)}: {self._matrix_to_string(self.round_keys[i])}")
+                print(f"round key {str(i).zfill(2)}: {self._matrix_to_string(round_keys[i])}")
             print()
         # return round keys
         return round_keys
@@ -244,6 +249,7 @@ class AES:
         for i in range(4):
             for j in range(4):
                 self.state_matrix[i][j] ^= key[i][j]
+
 
     # substitute each entry (byte) of 
     # current state matrix by corresponding 
@@ -263,6 +269,8 @@ class AES:
             if inverse:
                 self.state_matrix[i] = self.state_matrix[i][4-i:] + self.state_matrix[i][:4-i]
             else: self.state_matrix[i] = self.state_matrix[i][i:] + self.state_matrix[i][:i]
+        
+        
 
     # https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_MixColumns_step
     # https://en.wikipedia.org/wiki/Rijndael_MixColumns#Matrix_representation
@@ -277,29 +285,30 @@ class AES:
                     bv1 = BitVector(hexstring=hex(
                         self.state_matrix[k][j])[2:])
                     bv2 = Mixer[i][k] if not inverse else InvMixer[i][k]
-
                     bv3 = bv2.gf_multiply_modular(bv1, AES_modulus, 8)
                     val ^= bv3.int_val()
                 new_state[i][j] = val
         self.state_matrix = new_state
 
         # encrypt plaintext
-    def encrypt(self, plaintext:str, print_state=False):
+    def encrypt(self, data:bytes, print_state=False):
         # add text padding if needed
-        self.plaintext = psck7_pad(plaintext.encode(), 16).decode() #self._padding(plaintext)
+        self.data = psck7_pad(data, 16) #self._padding(plaintext)
         # print(f"padded plaintext: {self.plaintext}")
 
-        chipher_text = ""
-        for i in range(0, len(self.plaintext), 16):
-            block = self.plaintext[i:i+16]
+        chipher_data = bytearray()
+        n_block = len(self.data) # number of blocks
+        print(f"number of blocks: {n_block//16} to encrypt")
+        for i in range(0, n_block, 16):
+            block = self.data[i:i+16]
             self.state_matrix = self._constract_matrix(block)
 
-            if print_state: print("Intial state: "); self.print_state_matrix()
+            # if print_state: print("Intial state: "); self.print_state_matrix()
 
             # round 0
             self.add_round_key(self.round_keys[0])
 
-            if print_state: print("round 0:"); self.print_state_matrix()
+            # if print_state: print("round 0:"); self.print_state_matrix()
 
             # round 1 to 9
             for i in range(1, 10):
@@ -307,28 +316,30 @@ class AES:
                 self.shift_rows()
                 self.mix_columns()
                 self.add_round_key(self.round_keys[i])
-
-                if print_state: print(f"round {i}:"); self.print_state_matrix()
+                # if print_state: print(f"round {i}:"); self.print_state_matrix()
                 
             # round 10
             self.sub_bytes()
             self.shift_rows()
             self.add_round_key(self.round_keys[10])
 
-            if print_state: print("round 10:"); self.print_state_matrix()
+            # if print_state: print("round 10:"); self.print_state_matrix()
 
             # get ciphertext
-            chipher_text += self.get_state_as_text()
+            chipher_data += self.get_state_as_bytes() #self.get_state_as_text()
+            # print # as progress
+            # print(".", end="")
+        print()
 
-        return chipher_text
+        return chipher_data
 
     # decrypt ciphertext
-    def decrypt(self, encryptedtext, print_state=False):
+    def decrypt(self, encrypted_data:bytes, print_state=False):
 
         # decrypt ciphertext
-        decypted_text = ""
-        for i in range(0, len(encryptedtext), 16):
-            block = encryptedtext[i:i+16]
+        decypted_data = bytearray()
+        for i in range(0, len(encrypted_data), 16):
+            block = encrypted_data[i:i+16]
             self.state_matrix = self._constract_matrix(block)
 
             # round 10 
@@ -350,19 +361,32 @@ class AES:
             self.sub_bytes(inverse=True)
             self.add_round_key(self.round_keys[0])
 
-            decypted_text += self.get_state_as_text()
+            decypted_data += self.get_state_as_bytes() # self.get_state_as_text()
 
         # self._unpadding(decypted_text)
         # print("decyprted: ", decypted_text)
-        decypted_text = psck7_unpad(decypted_text.encode()).decode()
+        decypted_data = psck7_unpad(decypted_data)
 
-        return decypted_text
+        return decypted_data
 
-# main 
-if __name__ == "__main__":
+    def encrypt_file(self , input_file):
+        print("Opening file...", input_file)
+        with open(input_file, 'rb') as f:
+            plaintext = f.read()
+        f.close()
+        print("Encrypting file...")
+        encrypted_text = self.encrypt(plaintext)
+        print("done")
+        return encrypted_text
+    
+    # encrypt binary file
+    def encrypt_binary_file(self, input_file, output_file):
+        with open(input_file, 'rb') as f:
+            plaintext = f.read()
+        encrypted_text = self.encrypt(plaintext)
+        return encrypted_text
 
-    # key = "Thats my Kung Fu"
-    key = "BUET CSE18 Batch"
+def text_test(key: str):
     # plaintext = "Two One Nine Two"
     plaintext = "Can They Do This BOB"
 
@@ -373,21 +397,21 @@ if __name__ == "__main__":
 
     print("Plain text:")
     print("In ASCII: ", plaintext)
-    print("In HEX: ", str_to_hex(plaintext).lower())
+    print("In HEX: ", plaintext.encode().hex())
     print("")
 
     print("Key:")
     print("In ASCII: ", key)
-    print("In HEX: ", str_to_hex(key).lower())
+    print("In HEX: ", key.encode().hex())
     print("")
 
     start = time.time() # start time
-    encrypted_text = aes.encrypt(plaintext, print_state=False)
+    encrypted_text = aes.encrypt(plaintext.encode(), print_state=False)
     end = time.time() # end time
     encrypt_time = end - start
     print("Chiper Text:")
-    print("In ASCII: ", encrypted_text)
-    print("In HEX: ", str_to_hex(encrypted_text).lower() )
+    print("In ASCII: ", encrypted_text.decode("utf-8", errors="ignore"))
+    print("In HEX: ", encrypted_text.hex() )
     print("")
 
     start = time.time() # start time
@@ -395,13 +419,70 @@ if __name__ == "__main__":
     end = time.time() # end time
     decrypt_time = end - start
     print("Dchiphered Text:")
-    print("In ASCII: ", decypted_text)
-    print("In HEX: ", str_to_hex(decypted_text).lower() )
+    print("In ASCII: ", decypted_text.decode("utf-8"))
+    print("In HEX: ", decypted_text.hex() )
     print("")
 
     print("Execution time details:")
     print("Key schedule: ", key_schedule_time, "seconds")
     print("Encryption Time: ", encrypt_time, "seconds")
     print("Decryption Time: ", decrypt_time, "seconds")
+
+def text_file_test(key: str, input_file: str):
+    aes = AES(key)
+    # input file extension
+    input_file_ext = input_file.split(".")[-1]
+    output_file = "out/encrypted" + "." + input_file_ext
+
+    print("Encrypting file: ", input_file)
+    start = time.time() # start time
+    encrypted_text = aes.encrypt_file(input_file)
+    end = time.time() # end time
+    print("Encryption time: ", end - start, "seconds")
+    print("Encryption done.")
+    print()
+
+    print("Saving encrypted text in file: ", output_file)
+    with open(output_file, 'wb') as f:
+        f.write(encrypted_text)
+    f.close()
+    print("Encrypted text saved ")
+    print()
+
+    input_file = "out/encrypted" + "." + input_file_ext
+    # open input file
+    print("Opening encyrpted file: ", input_file)
+    with open (input_file, 'rb') as f:
+        encrypted_text = f.read()
+    f.close()
+    print("Encrypted file opened.")
+    print()
+
+    print("Decrypting file...")
+    start = time.time() # start time
+    decrypted_text = aes.decrypt(encrypted_text)
+    end = time.time() # end time
+    print("Decryption time: ", end - start, "seconds")
+    print("Decryption done.")
+    print()
+
+
+    output_file = "out/decrypted" + "." + input_file_ext
+    print("Saving decrypted text in file: ", output_file)
+    with open(output_file, 'wb') as f:
+        f.write(decrypted_text)
+    print("Decrypted text saved in file: ", output_file)
+    print()
+
+
+
+# main 
+if __name__ == "__main__":
+
+    # key = "Thats my Kung Fu"
+    key = "BUET CSE18 Batch"
+    # text_test("Thats my Kung Fu")
+    text_file_test(key, "out/snake.png")
+
 
 
