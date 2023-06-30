@@ -40,10 +40,34 @@ def save_private_key(key, file_name):
     if not os.path.isdir(SECRET_DIR):
         os.mkdir(SECRET_DIR)
     save_string_to_file(
-        os.path.join(SECRET_DIR,"alice_priv_key.txt"),
-        str(alice.private_key))
+        os.path.join(SECRET_DIR,file_name),
+        str(key))
     print("Private key saved to file!")
     print()
+
+def send(aes: AES, client: socket):
+    while(True):
+        type = input("Enter 1 for text, 2 for file, 3 for esc: ")
+        if type == "1":
+            print("Sending message type to Bob...")
+            client.sendall(aes.encrypt("text".encode())) # send type
+            print("Type sent!")
+
+            
+            message = input("Enter message: ")
+            print("Original Message:", message)
+            
+            encrypted_message = aes.encrypt(message.encode())
+            print("Encrypted message:", encrypted_message.decode(errors="ignore"))
+            # send message to bob
+            print("Sending text message to Bob...")
+            client.sendall(encrypted_message) # send bytes
+            print("Message sent!")
+            print()
+        elif type == "2":
+            client.sendall(aes.encrypt("file".encode())) # send type
+        elif type == "3":
+            break
 
 if __name__ == "__main__":
     # generate p and g
@@ -112,19 +136,23 @@ if __name__ == "__main__":
     # receive ready message from bob
     print("Waiting for Bob to be ready...")
     data = client.recv(BUFFER_SIZE).decode()
+
+    aes = AES(str(shared_key))
     if data == "ready":
         print("Bob is ready!")
 
-        # send message to bob
-        print("Sending message to Bob...")
-        message = "Hello from the other side Bob. How are you! This is Alice"
-        print("Original Message:", message)
-        aes = AES(str(shared_key))
-        encrypted_message = aes.encrypt(message.encode())
-        print("Encrypted message:", encrypted_message.decode(errors="ignore"))
-        client.sendall(encrypted_message) # send bytes
-        print("Message sent!")
-        print()
+        while(True):
+            send_or_receive = input("Enter 1 for send, 2 for receive, 3 for esc: ")
+            if send_or_receive == "1":
+                send(aes, client)
+            elif send_or_receive == "2":
+                pass
+            else:
+                # send exit message to bob
+                print("Sending exit message to Bob...")
+                client.sendall(aes.encrypt("exit".encode()))
+                print("Exit message sent!")
+                break
     else:
         print("Bob is not ready!")
 
