@@ -105,15 +105,15 @@ if __name__ == "__main__":
 
         # receive encrypted message from Alice
         print("Waiting for encrypted message from Alice...")
-        data = s.recv(BUFFER_SIZE).decode()
+        data:bytes = s.recv(BUFFER_SIZE) # received encrypted message as bytes
         print("Encrypted message received!")
-        print("Encrypted message:", data)
+        print("Encrypted message:", data.decode(errors="ignore"))
         print()
 
         # decrypt message
         print("Decrypting message...")
         aes = AES(str(shared_key))
-        message = aes.decrypt(data)
+        message:str = aes.decrypt(data).decode()
         print("Decrypted message:", message)
         print()
     else:

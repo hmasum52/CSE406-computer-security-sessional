@@ -20,12 +20,30 @@ KEY_SIZE = 128
 SECRET_DIR = "secret"
 BUFFER_SIZE = 1024
 
+def create_server() -> socket : 
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+    # bind socket to port
+    s.bind(('', SERVER_PORT))
+    s.listen(5)
+    return s
+
 # function to save string in text file
 def save_string_to_file(filename: str, string: str):
     with open(filename, "w") as f:
         f.write(string)
         f.close()
 
+def save_private_key(key, file_name):
+    print("Saving private key to file...")
+    if not os.path.isdir(SECRET_DIR):
+        os.mkdir(SECRET_DIR)
+    save_string_to_file(
+        os.path.join(SECRET_DIR,"alice_priv_key.txt"),
+        str(alice.private_key))
+    print("Private key saved to file!")
+    print()
 
 if __name__ == "__main__":
     # generate p and g
@@ -39,14 +57,7 @@ if __name__ == "__main__":
     print("Alice's public key:", alice.public_key)
 
     # save private key to file
-    print("Saving private key to file...")
-    if not os.path.isdir(SECRET_DIR):
-        os.mkdir(SECRET_DIR)
-    save_string_to_file(
-        os.path.join(SECRET_DIR,"alice_priv_key.txt"),
-        str(alice.private_key))
-    print("Private key saved to file!")
-    print()
+    save_private_key(alice.private_key, "alice_priv_key.txt")
 
     A = alice.public_key # g^a mod p
 
@@ -57,16 +68,8 @@ if __name__ == "__main__":
         "A": A
     }
 
-    # convert data to json
-    data = json.dumps(data)
-
     # create socket
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    # bind socket to port
-    s.bind(('', SERVER_PORT))
-    s.listen(5)
+    s = create_server()
     print("Waiting for Bob ...")
     client, addr = s.accept() # Blocking call
     print("Bob is here!")
@@ -74,7 +77,7 @@ if __name__ == "__main__":
 
     # send data to bob
     print("Sending p,g,A to Bob...")
-    client.sendall(data.encode())
+    client.sendall(json.dumps(data).encode())
     print("p,g,A sent!")
     print()
 
@@ -114,12 +117,12 @@ if __name__ == "__main__":
 
         # send message to bob
         print("Sending message to Bob...")
-        message = "Can They Do This Bob!"
-        print("Message:", message)
+        message = "Hello from the other side Bob. How are you! This is Alice"
+        print("Original Message:", message)
         aes = AES(str(shared_key))
-        encrypted_message = aes.encrypt(message)
-        print("Encrypted message:", encrypted_message)
-        client.sendall(encrypted_message.encode())
+        encrypted_message = aes.encrypt(message.encode())
+        print("Encrypted message:", encrypted_message.decode(errors="ignore"))
+        client.sendall(encrypted_message) # send bytes
         print("Message sent!")
         print()
     else:
