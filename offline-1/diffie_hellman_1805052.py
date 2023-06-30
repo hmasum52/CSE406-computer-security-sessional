@@ -158,7 +158,7 @@ def gen_public_base_g(p:int, factors, min, max)->int:
 
 
 
-class DeffieHellman:
+class DiffieHellman:
     """
     Deffie-Hellman key exchange protocol
     Generates a public modulus p and a primitive root g modulo p
@@ -223,7 +223,7 @@ def run_diffie_hellman(k: int=128):
     ######################################
 
     print("Generating private and public keys for Alice...")
-    alice = DeffieHellman(p, g)
+    alice = DiffieHellman(p, g)
     print("private key:", alice.private_key)
     print("length:", alice.private_key.bit_length(), "Gen time: ", alice.pk_gen_time_ms, "ms")
     print("public key:", alice.public_key)
@@ -232,7 +232,7 @@ def run_diffie_hellman(k: int=128):
 
     ######################################
     
-    bob = DeffieHellman(p, g)
+    bob = DiffieHellman(p, g)
     print("Bob's public key:", bob.public_key)
     print("Bob's public key length:", bob.public_key.bit_length())
     print("Bob's private key:", bob.private_key)

@@ -2,7 +2,7 @@ import socket
 import json
 import os
 from aes_1805052 import AES
-from diffie_hellman_1805052 import DeffieHellman
+from diffie_hellman_1805052 import DiffieHellman
 
 SERVER_PORT = 5252
 BUFFER_SIZE = 1024
@@ -44,7 +44,7 @@ def connect_to_alice():
 
 def generate_share_key(s, p, g):
     # generate private and public keys for Bob
-    bob = DeffieHellman(p, g)
+    bob = DiffieHellman(p, g)
     print("Bob's private key:", bob.private_key)
     print("Bob's public key:", bob.public_key)
     print()
@@ -74,7 +74,7 @@ def generate_share_key(s, p, g):
 
     return bob
 
-def generate_shared_key(bob:DeffieHellman, A:int):
+def generate_shared_key(bob:DiffieHellman, A:int):
     print("Generating shared key...")
     shared_key = bob.gen_shared_key(A)
     print("Shared key:", shared_key)
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     
     # generate private and public keys for Bob
     # and share the public key with Alice
-    bob:DeffieHellman = generate_share_key(s, p, g)
+    bob:DiffieHellman = generate_share_key(s, p, g)
 
     # generate shared key
     shared_key = generate_shared_key(bob, A)

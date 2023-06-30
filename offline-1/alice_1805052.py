@@ -1,7 +1,7 @@
 import socket 
 import os 
 import json
-from diffie_hellman_1805052 import DeffieHellman, gen_public_modulus_p
+from diffie_hellman_1805052 import DiffieHellman, gen_public_modulus_p
 from diffie_hellman_1805052 import gen_public_base_g
 from diffie_hellman_1805052 import gen_public_modulus_p
 from aes_1805052 import AES
@@ -69,7 +69,7 @@ def send(aes: AES, client: socket):
         elif type == "3":
             break
 
-def exchange_keys(client:socket, alice:DeffieHellman):
+def exchange_keys(client:socket, alice:DiffieHellman):
     # create data
     data = {
         "p": alice.p,
@@ -95,7 +95,7 @@ def exchange_keys(client:socket, alice:DeffieHellman):
     return B
 
 
-def generate_shared_key(alice:DeffieHellman, B:int)-> int:
+def generate_shared_key(alice:DiffieHellman, B:int)-> int:
     shared_key = alice.gen_shared_key(B)
     print("Alice's shared secret key:", shared_key)
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     
 
     # Generate private and public keys for Alice
-    alice = DeffieHellman(p, g)
+    alice = DiffieHellman(p, g)
     print("Alice's private key:", alice.private_key)
     print("Alice's public key:", alice.public_key)
 
