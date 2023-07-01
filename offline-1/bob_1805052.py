@@ -8,17 +8,16 @@ SERVER_PORT = 5252
 BUFFER_SIZE = 1024
 SECRET_DIR = "secret"
 
-def recv_all(s, buffer_size=BUFFER_SIZE):
-    msg_arr = []
-  
+def recv_json(s, buffer_size=BUFFER_SIZE):
+    msg = []
     while True:
-        segment = s.recv(buffer_size)
-        msg_arr += [segment.decode()]
+        chunk = s.recv(buffer_size)
+        msg += [chunk.decode()]
 
-        if len(segment) < buffer_size:
+        if len(chunk) < buffer_size:
             break
 
-    return "".join(msg_arr)
+    return "".join(msg)
 
 # function to save string in text file
 def save_string_to_file(filename: str, string: str):
@@ -32,7 +31,7 @@ def connect_to_alice():
     s.connect(('127.0.0.1', SERVER_PORT))
 
     print("Receiving data from Alice...")
-    response = json.loads(recv_all(s, BUFFER_SIZE))
+    response = json.loads(recv_json(s, BUFFER_SIZE))
     print("Data received!")
 
     # json to python object
