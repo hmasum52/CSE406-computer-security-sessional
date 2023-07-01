@@ -1,0 +1,22 @@
+f(k) -> k bit prime
+    from 10 random odd 1 may be prime
+    prime test: https://cp-algorithms.com/algebra/primality_tests.html#deterministic-version
+    https://en.wikipedia.org/wiki/Miller%E2%80%93Rabin_primality_test
+now we have k bit prime number
+find primitive root? https://en.wikipedia.org/wiki/Primitive_root_modulo_n
+shortcut: https://crypto.stackexchange.com/questions/56155/primitive-root-of-a-very-big-prime-number-elgamal-ds?fbclid=IwAR02Iwv33sSWLqrmJomj3O_tmTFkL5Gbikhkr19Ioi2wl5Q2UzD4B0FgIBo
+
+https://en.wikipedia.org/wiki/Diffie%E2%80%93Hellman_key_exchange
+
+https://en.wikipedia.org/wiki/Modular_exponentiation
+long long int PowMod(long long int x,long long int n,long long int M)
+{
+    if(n<=1)
+        return x%M;
+long long int res;
+    res=PowMod(x,n/2,M)%M;
+    res=(res*res)%M;
+    if(n%2==1)
+        res=((res%M)*(x%M))%M;
+    return res%M;
+}

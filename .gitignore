@@ -1,1 +1,5 @@
 *.mp4
+secret
+out
+# ignore python cache files
+__pycache__
