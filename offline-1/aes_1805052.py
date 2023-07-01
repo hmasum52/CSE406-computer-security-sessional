@@ -1,3 +1,10 @@
+"""
+author : Hasan Masum
+id     : 1805052
+Level  : 4 Term 1
+Course : CSE406-Computer Security Sessional
+Dept.  : CSE, BUET
+"""
 '''
     References
     - https://en.wikipedia.org/wiki/AES_key_schedule

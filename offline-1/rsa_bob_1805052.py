@@ -1,3 +1,10 @@
+"""
+author : Hasan Masum
+id     : 1805052
+Level  : 4 Term 1
+Course : CSE406-Computer Security Sessional
+Dept.  : CSE, BUET
+"""
 import socket
 import json
 import os

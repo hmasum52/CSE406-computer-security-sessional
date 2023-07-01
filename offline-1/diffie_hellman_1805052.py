@@ -1,6 +1,9 @@
 """
-author: Hasan Masum, 1805052,
-Leve 4, term 1, Dept CSE,BUET
+author : Hasan Masum
+id     : 1805052
+Level  : 4 Term 1
+Course : CSE406-Computer Security Sessional
+Dept.  : CSE, BUET
 """
 """
 References:
