@@ -86,6 +86,12 @@ def send(aes: AES, client: socket):
 
             client.sendall(aes.encrypt("file".encode())) # send type
 
+            # send file name to bob
+            print("Sending file name to Bob...")
+            client.sendall(aes.encrypt(file_name.encode()))
+            print("File name sent!")
+            print()
+
             print("Encrypting file...")
             data = aes.encrypt_file(file_name)
             print("File encrypted!")
@@ -96,11 +102,6 @@ def send(aes: AES, client: socket):
             print("File sent!")
             print()
 
-            # send file name to bob
-            print("Sending file name to Bob...")
-            client.sendall(aes.encrypt(file_name.encode()))
-            print("File name sent!")
-            print()
 
         elif type == "3":
             # send exit message to bob

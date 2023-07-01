@@ -114,8 +114,21 @@ def send_text(aes: AES, client: socket):
     print()
 
 def receive_and_save_file(aes:AES, s:socket):
+    # get file name
+    print("Waiting for file name from Alice...")
+    file_name = aes.decrypt(s.recv(BUFFER_SIZE)).decode()
+    print("File name received!")
+    print("File name:", file_name)
+    print()
+
     print("Waiting for encrypted file from Alice...")
-    data:bytes = s.recv(BUFFER_SIZE) # received encrypted file as bytes
+    # receiv all data bytes
+    data = b"" # bytes
+    while True:
+        chunk = s.recv(BUFFER_SIZE)
+        data += chunk
+        if len(chunk) < BUFFER_SIZE:
+            break
     print("Encrypted file received!")
     # print("Encrypted file:", data.decode(errors="ignore"))
     print()
@@ -125,14 +138,7 @@ def receive_and_save_file(aes:AES, s:socket):
     file = aes.decrypt(data)
     print("File decrypted!")
     print()
-
-    # get file name
-    print("Waiting for file name from Alice...")
-    file_name = aes.decrypt(s.recv(BUFFER_SIZE)).decode()
-    print("File name received!")
-    print("File name:", file_name)
-    print()
-
+    
     # save file
     print("Saving file...")
     with open(f"bob_{file_name}", "wb") as f:
