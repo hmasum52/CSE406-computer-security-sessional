@@ -1,0 +1,74 @@
+% author Hasan Masum, 1805052
+% created: 2021-09-20T20:00:00+06:00
+% Department of CSE, Buet
+\documentclass{article}
+\usepackage{graphicx,fancyhdr,amsmath,amssymb,amsthm,subfig,url,hyperref}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx,fancyhdr,amsmath,amssymb,amsthm,subfig,url,hyperref, enumitem, tikz, float}
+\usepackage[ruled,vlined]{algorithm2e}
+
+% required for tikz picture
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+% required for markdown suport
+\usepackage[settings, fencedCode]{markdown}
+\usepackage{parskip}
+
+\usepackage{outline} \usepackage{pmgraph} \usepackage[normalem]{ulem}
+\usepackage{graphicx} \usepackage{verbatim}
+
+%----------------------- Macros and Definitions --------------------------
+
+%%% FILL THIS OUT
+\newcommand{\exerciseset}{Chapter 1}
+%%% END
+\renewcommand{\theenumi}{\bf \Alph{enumi}}
+
+\fancypagestyle{plain}{}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[RO,LE]{\sffamily\bfseries\large  TheHive}
+\fancyhead[LO,RE]{\sffamily\bfseries\large CSE 306-Project Report}
+\fancyfoot[LO,RE]{\sffamily\bfseries\large 1805047-Ashfaqur Rahman \\& 1805052-Hasan Masum}
+\fancyfoot[LE,RO]{\sffamily\bfseries\thepage}
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[LE,RO]{\sffamily\bfseries\thepage}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+\renewcommand{\headrulewidth}{1pt}
+\renewcommand{\footrulewidth}{1pt}
+
+
+\begin{document}
+\tableofcontents
+\newpage
+
+
+
+\section{Introduction}
+\input{introduction}
+
+\section{Overview of the Source Code}
+\input{source_code_overview}
+
+\section{Key Features}
+\input{key_features}
+
+\section{Key Components}
+\input{key_components}
+
+\section{Documentation of Key features}
+\subsection{Organization Admin}
+\input{docs/org_admin/org_admin}
+\newpage
+\subsection{Analyst}
+\input{docs/analyst/analyst}
+
+\newpage
+\begin{thebibliography}{9}
+\bibitem{1} TheHive Project GitHub repository: \url{https://github.com/TheHive-Project/TheHive}
+\end{thebibliography}
+
+\end{document}

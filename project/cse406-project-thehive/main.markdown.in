@@ -1,0 +1,7 @@
+- __Case management__ : TheHive allows users to create cases from different sources, such as email, MISP events, SIEM alerts, or manually. Users can assign tasks to analysts, track the progress of the investigation, add observables, attach files, and write notes. Users can also use templates to standardize their case creation and workflow.
+
+- __Observable analysis__ : TheHive integrates with Cortex, a powerful observable analysis and active response engine. Thanks to Cortex, users can analyze observables such as IP and email addresses, URLs, domain names, files or hashes using a web interface or through the REST API. Users can also automate these operations and submit large sets of observables from TheHive or from alternative SIRP platforms, custom scripts or MISP.
+
+- __Active response__ : Cortex also enables users to perform active response actions on observables, such as blocking an IP address, disabling a user account, or quarantining a file. These actions can be triggered manually or automatically based on predefined rules.
+
+- __Information sharing__ : TheHive is tightly integrated with MISP, a platform for sharing threat intelligence among security teams. Users can import MISP events as cases in TheHive, or export cases as MISP events. Users can also synchronize their observables with MISP attributes, and enrich them with MISP taxonomies and galaxies .

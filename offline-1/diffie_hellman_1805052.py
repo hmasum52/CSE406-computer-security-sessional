@@ -135,6 +135,7 @@ def is_primitive_root(g:int, p:int, factors)->bool:
     Checks if g is a primitive root modulo p
     @param g, an integer
     @param p, a prime number
+    @param factors, a list of prime factors of p-1
     """
     # check if g is a primitive root modulo p
     # https://en.wikipedia.org/wiki/Primitive_root_modulo_n#Finding_primitive_roots

@@ -1,0 +1,1 @@
+cmd_/home/seed/Firewall/Labsetup/Files/packet_filter/seedFilter.mod := { echo  /home/seed/Firewall/Labsetup/Files/packet_filter/seedFilter.o; echo; } > /home/seed/Firewall/Labsetup/Files/packet_filter/seedFilter.mod

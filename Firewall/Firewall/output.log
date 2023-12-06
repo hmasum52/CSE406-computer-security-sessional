@@ -1,0 +1,11 @@
+Starting host3-192.168.60.7 ... 
+Starting hostA-10.9.0.5     ... 
+Starting host2-192.168.60.6 ... 
+Starting host1-192.168.60.5 ... 
+Starting seed-router        ... 
+[3A[2KStarting host2-192.168.60.6 ... [32mdone[0m[3B[4A[2KStarting hostA-10.9.0.5     ... [32mdone[0m[4B[5A[2KStarting host3-192.168.60.7 ... [32mdone[0m[5B[2A[2KStarting host1-192.168.60.5 ... [32mdone[0m[2B[1A[2KStarting seed-router        ... [32mdone[0m[1BAttaching to host2-192.168.60.6, hostA-10.9.0.5, host3-192.168.60.7, host1-192.168.60.5, seed-router
+[32mhost3-192.168.60.7 |[0m  * Starting internet superserver inetd       [80G [74G[ OK ]
+[33mhost2-192.168.60.6 |[0m  * Starting internet superserver inetd       [80G [74G[ OK ]
+[35mhostA-10.9.0.5 |[0m  * Starting internet superserver inetd       [80G [74G[ OK ]
+[36mhost1-192.168.60.5 |[0m  * Starting internet superserver inetd       [80G [74G[ OK ]
+[34mseed-router |[0m  * Starting internet superserver inetd       [80G [74G[ OK ]

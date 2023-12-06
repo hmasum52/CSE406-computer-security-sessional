@@ -1,0 +1,17 @@
+\subsection{Organizations}
+\begin{itemize} 
+\item \textbf{Organization settings}: Allow users to configure the name, description, logo, and default roles of an organization. 
+\item \textbf{Organization users}: The members of an organization who can access and work on cases and observables. Users can have different roles and permissions within an organization, such as admin, analyst, or read-only. 
+\item \textbf{Organization templates}: Predefined case templates that can be used by an organization to create new cases with specific tasks and metrics . Templates can be shared with other organizations or imported from external sources. 
+\item \textbf{Organization metrics}: Custom fields that can be used to measure and track the performance and progress of an organization’s cases. Metrics can be defined by an organization admin and assigned to case templates or individual cases. 
+\end{itemize}
+
+\subsection{Cases}
+
+Cases are the security incidents that need to be investigated and handled by analysts using The Hive security tool. Cases can have various attributes, such as title, description, severity, start date, end date, tasks, and observables. Cases can also be shared with other organizations or platforms, such as MISP or Cortex.
+
+\subsection{Task}
+Task is a component of The Hive security tool that represents a sub-activity that needs to be performed to handle a case. Tasks can have their own title, description, status, owner, start date, end date, logs, and attachments. Tasks can also be assigned to different analysts or teams within an organization. Tasks can be created from case templates or manually by users.
+
+\subsection{Observables}
+Observables are the data elements that can be analyzed by Cortex or shared with MISP within The Hive security tool. Observables can have different types, such as IP address, URL, file, hash, etc., and different tags, such as IOC, TLP, or custom tags. Observables can also be ignored for similarity calculation between cases and alerts.

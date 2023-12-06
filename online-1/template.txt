@@ -1,0 +1,65 @@
+# https://superuser.com/questions/1713986/why-permission-of-all-directory-set-to-full-for-wsl-windows
+chmod 400 bufferoverflow_key.pem
+
+
+# connect to vm
+ssh -i ./bufferoverflow_key.pem masum@20.244.20.187
+
+
+# upload file to vm
+scp -i ./bufferoverflow_key.pem Buffer_Overflow_Resources.zip masum@20.244.20.187:/home/masum
+
+
+in vim 
+I to insert
+esc to exit insert mode
+:wq to save and exit
+:q! to exit without saving
+
+
+# set randomize_va_space to 0 to start stack at a fixed address
+sudo sysctl -w kernel.randomize_va_space=0
+# soft link sh to zsh
+sudo ln -sf /bin/zsh /bin/sh
+
+#  compile stack.c
+# -m32: compile for 32-bit
+# -z execstack: allow execution on the stack
+# -fno-stack-protector: disable stack protection
+
+gcc -m32 -o stack -z execstack -fno-stack-protector stack-A2.c
+
+ls -l1 stack
+
+sudo chown root stack
+sudo chmod 4755 stack
+out: -rwsr-xr-x 1 root seed 15708 Jul 19 05:40 stack 
+# s in the permission bits indicates that the setuid bit is set
+# setuid bit is set, the program will run with the privileges of the owner of the program
+
+run exploit.py
+python3 exploit.py
+
+touch badfile //
+gcc -m32 -o stack_dbg -g -z execstack -fno-stack-protector stack-A2.c
+
+gdb stack_dbg
+
+# set break point to foo
+b foo
+# run the program
+r
+# run next line
+n
+
+# print ebp 
+p $ebp
+# print start of the buffer
+p &buffer
+# print the difference between ebp and the start of the buffer
+p/d 0xffffd458-0xffffd3eb # ebp - buffer
+
+
+PARAM 1 480
+PARAM 2 868
+PARAM 3 1216

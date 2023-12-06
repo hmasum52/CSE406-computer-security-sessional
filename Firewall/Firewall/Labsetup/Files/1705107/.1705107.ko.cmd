@@ -1,0 +1,1 @@
+cmd_/home/seed/Firewall/Labsetup/Files/1705107/1705107.ko := ld -r -m elf_x86_64  -z max-page-size=0x200000  --build-id  -T ./scripts/module-common.lds -o /home/seed/Firewall/Labsetup/Files/1705107/1705107.ko /home/seed/Firewall/Labsetup/Files/1705107/1705107.o /home/seed/Firewall/Labsetup/Files/1705107/1705107.mod.o;  true

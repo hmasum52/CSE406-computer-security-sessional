@@ -1,0 +1,19 @@
+4) Machine with ip address 10.9.0.5 can connect to 192.168.60.6 via TELNET
+
+iptables -A OUTPUT -p tcp -d 192.168.60.6 --dport 23 -j ACCEPT
+
+5) No other machine can connect to any other machine via TELNET
+
+iptables -A OUTPUT -p tcp --dport 23 -j DROP
+
+6) Machine with IP Address 10.9.0.1 can't ping any other machine 
+
+iptables -A OUTPUT -p icmp --icmp-type echo-request -j DROP
+
+7) Machine with IP address 10.9.0.5 can ping all other machines except 10.9.0.1
+
+iptables -A OUTPUT -p icmp -d 10.9.0.1 --icmp-type echo-request -j DROP
+
+8) No other machine can ping any other machine
+
+iptables -A OUTPUT -p icmp --icmp-type echo-request -j DROP 
